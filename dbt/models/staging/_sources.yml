@@ -1,0 +1,163 @@
+version: 2
+
+sources:
+  - name: marketing_raw
+    description: Raw marketing data tables from synthetic data generator
+    schema: marketing
+
+    tables:
+      - name: campaigns_daily
+        description: Daily campaign performance metrics across all advertising channels
+        columns:
+          - name: campaign_id
+            description: Unique identifier for the campaign
+            data_tests:
+              - not_null
+          - name: date
+            description: Date of the campaign metrics
+            data_tests:
+              - not_null
+          - name: campaign_name
+            description: Name of the campaign
+          - name: channel
+            description: Advertising channel (Meta, Google Ads, LinkedIn, etc.)
+          - name: status
+            description: Campaign status (active, paused, etc.)
+          - name: daily_budget
+            description: Daily budget allocated for the campaign
+          - name: spend
+            description: Amount spent on the campaign
+          - name: impressions
+            description: Number of impressions
+          - name: clicks
+            description: Number of clicks
+          - name: ctr
+            description: Click-through rate
+          - name: cpc
+            description: Cost per click
+          - name: year
+            description: Partition column - year
+          - name: month
+            description: Partition column - month
+          - name: day
+            description: Partition column - day
+
+      - name: ad_creatives
+        description: Creative-level performance metrics
+        columns:
+          - name: creative_id
+            description: Unique identifier for the ad creative
+            data_tests:
+              - not_null
+          - name: campaign_id
+            description: Foreign key to campaigns_daily
+          - name: creative_type
+            description: Type of creative (image, video, carousel)
+          - name: creative_name
+            description: Name of the creative
+          - name: impressions
+            description: Number of impressions
+          - name: clicks
+            description: Number of clicks
+          - name: ctr
+            description: Click-through rate
+          - name: spend
+            description: Amount spent on this creative
+
+      - name: sessions
+        description: User website sessions from advertising campaigns
+        columns:
+          - name: session_id
+            description: Unique identifier for the session
+            data_tests:
+              - not_null
+          - name: date
+            description: Date of the session
+          - name: user_id
+            description: Unique identifier for the user
+          - name: campaign_id
+            description: Foreign key to campaigns_daily
+          - name: creative_id
+            description: Foreign key to ad_creatives
+          - name: channel
+            description: Source advertising channel
+          - name: session_start
+            description: Timestamp when the session started
+          - name: session_duration_sec
+            description: Duration of the session in seconds
+          - name: pages_viewed
+            description: Number of pages viewed during session
+          - name: device_type
+            description: Device type (desktop, mobile, tablet)
+          - name: country
+            description: Country of the user
+          - name: year
+            description: Partition column - year
+          - name: month
+            description: Partition column - month
+          - name: day
+            description: Partition column - day
+
+      - name: attribution_touchpoints
+        description: Multi-touch attribution data showing user journey across campaigns
+        columns:
+          - name: touchpoint_id
+            description: Unique identifier for the touchpoint
+            data_tests:
+              - not_null
+          - name: session_id
+            description: Foreign key to sessions
+          - name: user_id
+            description: Unique identifier for the user
+          - name: campaign_id
+            description: Foreign key to campaigns_daily
+          - name: channel
+            description: Channel of this touchpoint
+          - name: touchpoint_position
+            description: Position in the user journey (first, middle, last)
+          - name: timestamp
+            description: When this touchpoint occurred
+
+      - name: conversions
+        description: Purchase events with attribution information
+        columns:
+          - name: conversion_id
+            description: Unique identifier for the conversion
+            data_tests:
+              - not_null
+          - name: session_id
+            description: Foreign key to sessions
+          - name: date
+            description: Date of the conversion
+          - name: user_id
+            description: Unique identifier for the user
+          - name: attributed_campaign_id
+            description: Campaign attributed to this conversion
+          - name: attribution_model
+            description: Attribution model used (first-touch, last-touch, linear, etc.)
+          - name: conversion_value
+            description: Value of the conversion in dollars
+          - name: timestamp
+            description: When the conversion occurred
+          - name: year
+            description: Partition column - year
+          - name: month
+            description: Partition column - month
+          - name: day
+            description: Partition column - day
+
+      - name: metadata_snapshots
+        description: Campaign and creative metadata snapshots
+        columns:
+          - name: entity_id
+            description: ID of the entity (campaign or creative)
+          - name: entity_type
+            description: Type of entity (campaign or creative)
+          - name: name
+            description: Name of the entity
+          - name: channel
+            description: Advertising channel
+          - name: created_at
+            description: When the entity was created
+          - name: updated_at
+            description: When the entity was last updated

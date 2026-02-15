@@ -1,0 +1,257 @@
+version: 2
+
+models:
+  - name: campaign_performance
+    description: |
+      Complete campaign performance fact table combining spend, impressions, clicks,
+      sessions, and conversions. This is the primary table for analyzing campaign ROI
+      and performance metrics.
+
+      Grain: One row per campaign per date
+
+      Key metrics:
+      - Advertising metrics (spend, impressions, clicks, CTR, CPC)
+      - Session metrics (sessions, users, engagement, device breakdown)
+      - Conversion metrics (conversions, revenue, AOV)
+      - Calculated KPIs (conversion rate, ROAS, CPA, click-to-session rate)
+    columns:
+      - name: campaign_id
+        description: Unique identifier for the campaign
+        data_tests:
+          - not_null
+      - name: date
+        description: Date of the performance metrics
+        data_tests:
+          - not_null
+      - name: campaign_name
+        description: Name of the campaign
+      - name: channel
+        description: Marketing channel (Meta, Google Ads, LinkedIn, etc.)
+      - name: status
+        description: Campaign status (active, paused, etc.)
+
+      # Spend metrics
+      - name: daily_budget
+        description: Daily budget allocated for the campaign in dollars
+      - name: spend
+        description: Actual amount spent on the campaign in dollars
+
+      # Impression & Click metrics
+      - name: impressions
+        description: Number of ad impressions served
+      - name: clicks
+        description: Number of clicks on ads
+      - name: ctr
+        description: Click-through rate (clicks / impressions)
+      - name: cpc
+        description: Cost per click in dollars
+
+      # Session metrics
+      - name: total_sessions
+        description: Total number of website sessions from this campaign
+      - name: unique_users
+        description: Number of unique users who had sessions
+      - name: avg_session_duration
+        description: Average session duration in seconds
+      - name: avg_pages_per_session
+        description: Average number of pages viewed per session
+      - name: engaged_sessions
+        description: Number of sessions classified as engaged
+      - name: mobile_sessions
+        description: Number of sessions from mobile devices
+      - name: desktop_sessions
+        description: Number of sessions from desktop devices
+
+      # Conversion metrics
+      - name: total_conversions
+        description: Total number of conversions attributed to this campaign
+      - name: converting_users
+        description: Number of unique users who converted
+      - name: total_revenue
+        description: Total revenue from conversions in dollars
+      - name: avg_order_value
+        description: Average order value (revenue per conversion)
+
+      # Calculated KPIs
+      - name: conversion_rate
+        description: Conversion rate (conversions / sessions)
+      - name: roas
+        description: Return on ad spend (revenue / spend)
+      - name: cost_per_conversion
+        description: Cost per acquisition - spend divided by conversions
+      - name: click_to_session_rate
+        description: Rate of clicks that resulted in sessions
+
+  - name: user_journey
+    description: |
+      User journey analysis fact table showing how users interact with marketing
+      campaigns over time, including touchpoint diversity and conversion behavior.
+
+      Grain: One row per user
+
+      Key insights:
+      - Journey complexity (touchpoints, campaigns, channels)
+      - Journey length and timeframe
+      - Conversion outcomes and value
+      - User segmentation (converted vs non-converted, multi-channel vs single-channel)
+    columns:
+      - name: user_id
+        description: Unique identifier for the user
+        data_tests:
+          - not_null
+          - unique
+
+      # Journey metrics
+      - name: total_touchpoints
+        description: Total number of marketing touchpoints for this user
+      - name: total_sessions
+        description: Total number of website sessions
+      - name: campaigns_touched
+        description: Number of distinct campaigns the user interacted with
+      - name: channels_used
+        description: Number of distinct marketing channels the user came from
+      - name: first_touch_date
+        description: Timestamp of the user's first marketing touchpoint
+      - name: last_touch_date
+        description: Timestamp of the user's most recent touchpoint
+      - name: journey_length_days
+        description: Number of days between first and last touchpoint
+
+      # Conversion metrics
+      - name: total_conversions
+        description: Total number of conversions by this user
+      - name: total_conversion_value
+        description: Total revenue from this user's conversions in dollars
+      - name: first_conversion_date
+        description: Timestamp of the user's first conversion
+      - name: last_conversion_date
+        description: Timestamp of the user's most recent conversion
+
+      # User classification
+      - name: user_type
+        description: |
+          User classification based on conversion:
+          - 'converted': User has made at least one conversion
+          - 'non-converted': User has not converted
+      - name: channel_behavior
+        description: |
+          User classification based on channel diversity:
+          - 'multi-channel': Used 3+ different channels
+          - 'dual-channel': Used exactly 2 channels
+          - 'single-channel': Used only 1 channel
+      - name: journey_length_category
+        description: |
+          User classification based on journey duration:
+          - 'long': Journey of 7+ days
+          - 'medium': Journey of 1-6 days
+          - 'short': Journey of less than 1 day
+
+  - name: channel_attribution
+    description: |
+      Channel attribution fact table showing conversion credit assigned to each
+      marketing channel using different attribution models.
+
+      Grain: One row per channel
+
+      Attribution models included:
+      - First-touch: 100% credit to first touchpoint
+      - Last-touch: 100% credit to last touchpoint
+      - Linear: Equal credit distributed across all touchpoints
+
+      Use this to compare how different attribution models value each channel.
+    columns:
+      - name: channel
+        description: Marketing channel (Meta, Google Ads, LinkedIn, etc.)
+        data_tests:
+          - not_null
+          - unique
+      - name: attributed_conversions
+        description: Total number of conversions where this channel had any touchpoint
+
+      # First-touch attribution
+      - name: first_touch_revenue
+        description: Total revenue attributed using first-touch model
+      - name: first_touch_conversions
+        description: Number of conversions where this was the first touchpoint
+
+      # Last-touch attribution
+      - name: last_touch_revenue
+        description: Total revenue attributed using last-touch model
+      - name: last_touch_conversions
+        description: Number of conversions where this was the last touchpoint
+
+      # Linear attribution
+      - name: linear_revenue
+        description: Total revenue attributed using linear (equal weight) model
+
+  - name: daily_summary
+    description: |
+      Daily rollup summary fact table aggregating all campaign performance
+      across the entire business. Provides a high-level view of marketing
+      performance over time.
+
+      Grain: One row per date
+
+      Key metrics:
+      - Campaign and channel activity levels
+      - Total spend and budget utilization
+      - Aggregate advertising performance
+      - Overall session and user engagement
+      - Total conversions and revenue
+      - Portfolio-level KPIs (conversion rate, ROAS, CPA)
+    columns:
+      - name: date
+        description: Date of the summary metrics
+        data_tests:
+          - not_null
+          - unique
+
+      # Campaign metrics
+      - name: active_campaigns
+        description: Number of distinct campaigns active on this date
+      - name: active_channels
+        description: Number of distinct channels with activity
+
+      # Spend metrics
+      - name: total_spend
+        description: Total amount spent across all campaigns in dollars
+      - name: total_budget
+        description: Total budget allocated across all campaigns
+      - name: budget_utilization
+        description: Percentage of budget actually spent (spend / budget)
+
+      # Impression & Click metrics
+      - name: total_impressions
+        description: Total ad impressions across all campaigns
+      - name: total_clicks
+        description: Total clicks across all campaigns
+      - name: avg_ctr
+        description: Average click-through rate across campaigns
+      - name: avg_cpc
+        description: Average cost per click across campaigns
+
+      # Session metrics
+      - name: total_sessions
+        description: Total website sessions from all campaigns
+      - name: total_users
+        description: Total unique users across all campaigns
+      - name: avg_session_duration
+        description: Average session duration in seconds
+      - name: avg_pages_per_session
+        description: Average pages viewed per session
+
+      # Conversion metrics
+      - name: total_conversions
+        description: Total conversions across all campaigns
+      - name: total_revenue
+        description: Total revenue from all conversions in dollars
+      - name: avg_order_value
+        description: Average order value across all conversions
+
+      # Calculated KPIs
+      - name: overall_conversion_rate
+        description: Overall conversion rate (total conversions / total sessions)
+      - name: overall_roas
+        description: Overall return on ad spend (total revenue / total spend)
+      - name: overall_cpa
+        description: Overall cost per acquisition (total spend / total conversions)

@@ -1,0 +1,12 @@
+marketing_analytics:
+  target: prod
+  outputs:
+    prod:
+      type: postgres
+      host: postgresql
+      port: 5432
+      user: postgres
+      password: password
+      dbname: postgres
+      schema: marketing
+      threads: 4
