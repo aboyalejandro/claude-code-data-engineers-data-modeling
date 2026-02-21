@@ -1,3 +1,6 @@
+# GenAI Toolbox binary
+bin/
+
 # dbt
 dbt/target/
 dbt/logs/

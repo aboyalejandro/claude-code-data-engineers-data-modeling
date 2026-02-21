@@ -1,8 +1,13 @@
 # agentic-miro-to-dbt
 
-Companion repo for [From Miro to dbt: Data Modeling with MCPs and Skills](https://thepipeandtheline.substack.com).
+Companion repo for [Claude Code for Data Engineer: MCP Driven Data Modeling with dbt & Miro & PostgreSQL](https://thepipeandtheline.substack.com).
 
 Go from a business PRD on a Miro board to documented dbt models in one Claude Code session.
+
+## Branches
+
+- **`main`** — Starting point. Base project with campaigns, sessions, and conversions already modeled. The PRD exists but nothing from it has been implemented yet. This is where you run the workflow.
+- **`complete`** — Finished reference. All PRD-generated models (CLV, funnel analysis, user journey, channel attribution) are built out. Use this to see the expected end state.
 
 ## Stack
 
@@ -23,7 +28,25 @@ docker compose run --rm dbt dbt compile --profiles-dir . --project-dir .
 docker compose run --rm dbt dbt test --profiles-dir . --project-dir .
 ```
 
-Configure MCPs and Skills:
+### Postgres MCP (Google GenAI Toolbox)
+
+The `.mcp.json` is pre-configured for the Docker PostgreSQL instance. You just need the toolbox binary:
+
+```bash
+# macOS ARM64 (Apple Silicon)
+curl -O https://storage.googleapis.com/genai-toolbox/v0.7.0/darwin/arm64/toolbox
+chmod +x toolbox && mkdir -p bin && mv toolbox bin/
+
+# macOS Intel
+curl -O https://storage.googleapis.com/genai-toolbox/v0.7.0/darwin/amd64/toolbox
+chmod +x toolbox && mkdir -p bin && mv toolbox bin/
+
+# Linux x86_64
+curl -O https://storage.googleapis.com/genai-toolbox/v0.7.0/linux/amd64/toolbox
+chmod +x toolbox && mkdir -p bin && mv toolbox bin/
+```
+
+### Other MCPs and Skills
 
 ```bash
 # Miro MCP (or use the .mcp.json already included)
@@ -33,8 +56,6 @@ claude mcp add --transport http miro https://mcp.miro.com/
 /plugin marketplace add dbt-labs/dbt-agent-skills
 /plugin install dbt@dbt-agent-marketplace
 ```
-
-Configure [MCP Data Toolbox](https://github.com/googleapis/genai-toolbox) for your warehouse (see `.mcp.json` for the config template).
 
 ## The Workflow
 
@@ -50,7 +71,8 @@ Configure [MCP Data Toolbox](https://github.com/googleapis/genai-toolbox) for yo
 seed/                         # S3 → PostgreSQL data loader
 dbt/                          # marketing_analytics dbt project
   models/
-    staging/                  # 5 staging models (1 new from PRD)
-    intermediate/             # 8 intermediate models (2 new from PRD)
-    marts/                    # 6 marts (2 new from PRD)
+    staging/                  # 4 staging models
+    marts/                    # 2 marts (campaign_performance, daily_summary)
+docs/
+  sample-prd.md               # Business PRD for CLV + Funnel Analysis
 ```

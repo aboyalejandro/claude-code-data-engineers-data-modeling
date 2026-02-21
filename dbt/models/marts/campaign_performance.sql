@@ -1,15 +1,32 @@
--- Simplified mart model using intermediate models for session and conversion metrics
-
 with campaigns as (
     select * from {{ ref('stg_campaigns_daily') }}
 ),
 
 session_metrics as (
-    select * from {{ ref('int_session_metrics_by_campaign') }}
+    select
+        campaign_id,
+        date,
+        count(distinct session_id) as total_sessions,
+        count(distinct user_id) as unique_users,
+        avg(session_duration_sec) as avg_session_duration,
+        avg(pages_viewed) as avg_pages_per_session,
+        sum(case when engagement_level = 'engaged' then 1 else 0 end) as engaged_sessions,
+        sum(case when device_type = 'mobile' then 1 else 0 end) as mobile_sessions,
+        sum(case when device_type = 'desktop' then 1 else 0 end) as desktop_sessions
+    from {{ ref('stg_sessions') }}
+    group by campaign_id, date
 ),
 
 conversion_metrics as (
-    select * from {{ ref('int_conversion_metrics_by_campaign') }}
+    select
+        attributed_campaign_id as campaign_id,
+        date,
+        count(distinct conversion_id) as total_conversions,
+        count(distinct user_id) as converting_users,
+        sum(conversion_value) as total_revenue,
+        avg(conversion_value) as avg_order_value
+    from {{ ref('stg_conversions') }}
+    group by attributed_campaign_id, date
 ),
 
 final as (
