@@ -38,6 +38,12 @@ Claude uses `diagram_create` to push the proposed schema directly to the board �
 
 ![ERD pushed to Miro board](07-erd-pushed-to-miro.png)
 
+### 5. Full Miro board: PRD + ERD
+
+The completed board — business requirements on the left, proposed entity-relationship diagram on the right. This is what stakeholders review before any code is written.
+
+![Full Miro board overview](08-miro-board-overview.png)
+
 ## Key files
 
 - [Miro board](https://miro.com/app/board/uXjVGAWWNk0=/?share_link_id=558250594311) — The PRD lives directly on the board (Claude reads it via MCP)

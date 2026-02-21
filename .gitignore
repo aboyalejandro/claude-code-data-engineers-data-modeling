@@ -12,5 +12,9 @@ __pycache__/
 *.pyc
 .venv/
 
+# Claude Code
+.claude/settings.json
+.claude/settings.local.json
+
 # OS
 .DS_Store

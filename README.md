@@ -14,7 +14,7 @@ All context in this post: [Claude Code for Data Engineer: MCP Driven Data Modeli
 ## 🌿 Branches
 
 - **`main`** — Starting point. Base dbt project with campaigns, sessions, and conversions modeled. The [PRD lives on Miro](https://miro.com/app/board/uXjVGAWWNk0=/?share_link_id=558250594311) but nothing from it has been implemented yet. Run the workflow here.
-- **`complete`** — Finished reference with all PRD-generated models built out.
+- **[PR #1](https://github.com/aboyalejandro/claude-code-data-engineers-data-modeling/pull/1)** — Full implementation: 2 intermediate + 2 new mart models generated from the PRD.
 
 ## ⚡ Quick Start
 
@@ -48,10 +48,9 @@ chmod +x toolbox && mkdir -p bin && mv toolbox bin/
 
 ### Miro MCP & dbt Agent Skills
 
-```bash
-# Miro MCP
-claude mcp add --transport http miro https://mcp.miro.com/
+Miro MCP is pre-configured in `.mcp.json`. On first use, Claude will prompt you to authenticate via browser.
 
+```bash
 # dbt Agent Skills
 /plugin marketplace add dbt-labs/dbt-agent-skills
 /plugin install dbt@dbt-agent-marketplace
@@ -83,7 +82,8 @@ seed/                              # S3 → PostgreSQL data loader
 dbt/                               # marketing_analytics dbt project
   models/
     staging/                       #   4 staging models
-    marts/                         #   2 marts (campaign_performance, daily_summary)
+    intermediate/                  #   2 intermediate models (int_customer_lifetime_value, int_campaign_funnel)
+    marts/                         #   4 marts (campaign_performance, daily_summary, customer_lifetime_value, campaign_funnel_analysis)
 ```
 
 The business PRD lives on [this Miro board](https://miro.com/app/board/uXjVGAWWNk0=/?share_link_id=558250594311) — Claude reads it directly via Miro MCP during the workflow.

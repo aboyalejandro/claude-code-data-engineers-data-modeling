@@ -20,10 +20,9 @@
 | 4 | ![04](04-catch-duplicate-bug.png) | Catches fan-out bug: first_touch join produces 145K rows (83 duplicates per user) |
 | 5 | ![05](05-write-mart-models.png) | Writes `campaign_funnel_analysis` mart, validates funnel rates (LinkedIn ranks highest) |
 | 6 | ![06](06-write-schema-yamls.png) | Generates `_intermediate.yml` and updates `_marts.yml` with docs and tests |
-| 7 | ![07](07-miro-board-overview.png) | Full Miro board: PRD on the left, generated ERD on the right — the design we're implementing |
-| 8 | ![08](08-dbt-compile-success.png) | `dbt compile` passes — 10 models found (4 staging + 2 intermediate + 4 marts) |
-| 9 | ![09](09-test-failure-investigation.png) | `unique_customer_lifetime_value_user_id` test fails — investigates `DISTINCT ON` dropped from view |
-| 10 | ![10](10-fix-with-row-number.png) | Fixes with `ROW_NUMBER()` window function, which PostgreSQL preserves in view definitions |
+| 7 | ![07](07-dbt-compile-success.png) | `dbt compile` passes — 10 models found (4 staging + 2 intermediate + 4 marts) |
+| 8 | ![08](08-test-failure-investigation.png) | `unique_customer_lifetime_value_user_id` test fails — investigates `DISTINCT ON` dropped from view |
+| 9 | ![09](09-fix-with-row-number.png) | Fixes with `ROW_NUMBER()` window function, which PostgreSQL preserves in view definitions |
 
 ## Models created from the PRD
 
