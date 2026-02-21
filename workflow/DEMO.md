@@ -6,19 +6,12 @@ End-to-end walkthrough of the Miro-to-dbt workflow using Claude Code with MCP to
 
 ---
 
-## Stage 1 — [Setup: Connecting Miro MCP](setup/MIRO_MCP_SETUP.md)
+## Stage 1 — [Setup: Miro MCP + dbt Agent Skills](setup/SETUP.md)
 
-Connect Claude Code to your Miro board via the MCP server. One-time OAuth flow.
+Connect two tool integrations before running the workflow. See [SETUP.md](setup/SETUP.md) for the full walkthrough with screenshots.
 
-| Step | Screenshot |
-|------|-----------|
-| `/mcp` shows Miro needs auth | ![](setup/01-mcp-needs-auth.png) |
-| Select "Authenticate" | ![](setup/02-mcp-authenticate.png) |
-| Browser opens for OAuth | ![](setup/03-browser-opens.png) |
-| Allow access | ![](setup/04-allow-access.png) |
-| Select team & confirm | ![](setup/05-select-team.png) |
-
-**Result:** `Authentication successful. Connected to miro.`
+- **Miro MCP** — Pre-configured in `.mcp.json`. Authenticate via `/mcp` (used in Stage 2).
+- **dbt Agent Skills** — Install via `/plugin` marketplace from `dbt-labs/dbt-agent-skills` (used in Stage 3).
 
 ---
 
@@ -58,12 +51,13 @@ Once the ERD is approved, Claude generates the dbt models, schema docs, and test
 
 ```
 workflow/
-  DEMO.md              ← you are here
+  DEMO.md                ← you are here
   setup/
-    MIRO_MCP_SETUP.md  ← Miro MCP connection guide
-    01-05 *.png        ← setup screenshots
+    SETUP.md             ← Miro MCP + dbt Agent Skills
+    miro/                ← Miro connection screenshots
+    dbt/                 ← dbt skills install screenshots
   design/
-    DESIGN.md          ← schema design stage
+    DESIGN.md            ← schema design stage
   modeling/
-    MODELING.md         ← dbt implementation stage
+    MODELING.md           ← dbt implementation stage
 ```

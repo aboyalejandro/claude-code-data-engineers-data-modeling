@@ -69,9 +69,10 @@ claude mcp add --transport http miro https://mcp.miro.com/
 ```text
 workflow/                          # Full demo walkthrough
   DEMO.md                          #   Master guide — start here
-  setup/                           #   Stage 1: Connect Miro MCP
-    MIRO_MCP_SETUP.md              #     Step-by-step connection guide
-    01-05 *.png                    #     Setup screenshots
+  setup/                           #   Stage 1: Connect tools
+    SETUP.md                       #     Master setup guide
+    miro/                          #     Miro MCP connection + screenshots
+    dbt/                           #     dbt Agent Skills install + screenshots
   design/                          #   Stage 2: Read PRD + propose ERD
     DESIGN.md                      #     Schema design walkthrough
   modeling/                        #   Stage 3: Implement dbt models
