@@ -11,17 +11,32 @@
 
 ## Screenshots
 
-### 1. Read PRD from the Miro board
+### 1. Trigger the skill and read PRD from Miro
 
-Claude uses `context_explore` to discover the board structure, then `context_get` to extract the full PRD content — all via MCP, no copy-paste needed.
+The `prd-to-dbt` skill fires `context_explore` + `context_get` to extract the full PRD directly from the Miro board.
 
 ![Reading PRD from Miro board](01-read-prd-from-board.png)
+![Skill trigger and Miro MCP calls](02-read-prd-trigger.png)
 
-> Remaining screenshots to add as the workflow continues:
->
-> - `02-explore-database.png` — Claude discovering existing tables
-> - `03-implementation-plan.png` — The generated translation plan
-> - `04-erd-on-miro.png` — The proposed ERD pushed to the board
+### 2. Explore the database
+
+Postgres MCP discovers all 6 tables in the `marketing` schema, then runs exploratory queries to validate assumptions (repeat purchases, touchpoint positions, channel distribution).
+
+![List tables via Postgres MCP](03-explore-database.png)
+![Exploratory SQL queries](04-exploratory-queries.png)
+
+### 3. Read existing project + produce implementation plan
+
+Claude reads the dbt project (sources YAML, staging models, marts) and maps every PRD requirement to concrete models, columns, and joins.
+
+![Read existing dbt schema](05-read-project-schema.png)
+![Implementation plan output](06-implementation-plan.png)
+
+### 4. Propose ERD on Miro
+
+Claude uses `diagram_create` to push the proposed schema directly to the board — color-coded by layer (blue = staging, purple = intermediate, green = marts).
+
+![ERD pushed to Miro board](07-erd-pushed-to-miro.png)
 
 ## Key files
 
