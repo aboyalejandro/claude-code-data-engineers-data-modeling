@@ -13,7 +13,7 @@ All context in this post: [Claude Code for Data Engineer: MCP Driven Data Modeli
 
 ## 🌿 Branches
 
-- **`main`** — Starting point. Base dbt project with campaigns, sessions, and conversions modeled. The PRD exists but nothing from it has been implemented yet. Run the workflow here.
+- **`main`** — Starting point. Base dbt project with campaigns, sessions, and conversions modeled. The [PRD lives on Miro](https://miro.com/app/board/uXjVGAWWNk0=/) but nothing from it has been implemented yet. Run the workflow here.
 - **`complete`** — Finished reference with all PRD-generated models built out.
 
 ## ⚡ Quick Start
@@ -69,12 +69,12 @@ claude mcp add --transport http miro https://mcp.miro.com/
 ```text
 .claude/skills/prd-to-dbt/   # Custom translation Skill
 seed/                         # S3 → PostgreSQL data loader
-docs/
-  sample-prd.md               # Business PRD (what gets implemented)
 dbt/                          # marketing_analytics dbt project
   models/
     staging/                  # 4 staging models
     marts/                    # 2 marts (campaign_performance, daily_summary)
 ```
+
+The business PRD lives on [this Miro board](https://miro.com/app/board/uXjVGAWWNk0=/) — Claude reads it directly via Miro MCP during the workflow.
 
 ### 📩 Subscribe to [The Pipe & The Line](https://thepipeandtheline.substack.com)
