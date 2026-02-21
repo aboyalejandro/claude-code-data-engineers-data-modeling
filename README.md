@@ -2,6 +2,8 @@
 
 Go from a business PRD on a Miro board to documented dbt models in one Claude Code session.
 
+![Architecture: Claude Code with MCP and dbt Skills](architecture.png)
+
 All context in this post: [Claude Code for Data Engineer: MCP Driven Data Modeling with dbt & Miro & PostgreSQL](https://thepipeandtheline.substack.com)
 
 ## 🧩 Stack
