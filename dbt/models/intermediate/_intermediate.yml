@@ -1,0 +1,42 @@
+version: 2
+
+models:
+  - name: int_customer_lifetime_value
+    description: |
+      Customer-level aggregation of conversion data.
+      Grain: One row per user_id.
+    columns:
+      - name: user_id
+        description: Unique identifier for the customer
+        data_tests:
+          - not_null
+          - unique
+      - name: total_revenue
+        description: Total conversion value across all purchases
+      - name: total_orders
+        description: Number of distinct conversions
+      - name: first_purchase_date
+        description: Date of the customer's first purchase
+      - name: last_purchase_date
+        description: Date of the customer's most recent purchase
+
+  - name: int_campaign_funnel
+    description: |
+      Campaign-level funnel metrics aggregated across all dates.
+      Grain: One row per campaign_id.
+    columns:
+      - name: campaign_id
+        description: Unique identifier for the campaign
+        data_tests:
+          - not_null
+          - unique
+      - name: total_impressions
+        description: Total impressions across all dates
+      - name: total_clicks
+        description: Total clicks across all dates
+      - name: total_sessions
+        description: Total distinct sessions attributed to this campaign
+      - name: total_conversions
+        description: Total distinct conversions attributed to this campaign
+      - name: total_revenue
+        description: Total conversion revenue attributed to this campaign
