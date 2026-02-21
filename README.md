@@ -1,4 +1,4 @@
-# 🔄 Claude Code for Data Engineer: MCP Driven Data Modeling with dbt & Miro & PostgreSQL
+# 🔄 Claude Code for Data Engineers: MCP Driven Data Modeling with dbt & Miro & PostgreSQL
 
 Go from a business PRD on a Miro board to documented dbt models in one Claude Code session.
 
