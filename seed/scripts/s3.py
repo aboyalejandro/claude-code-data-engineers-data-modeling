@@ -32,6 +32,7 @@ def seed_table(table_name):
     # Install and load extensions
     duck.execute("INSTALL httpfs;")
     duck.execute("LOAD httpfs;")
+    duck.execute("SET s3_region='us-east-1';")
     duck.execute("INSTALL postgres;")
     duck.execute("LOAD postgres;")
     print("  Extensions loaded (httpfs for S3, postgres for DB)")
@@ -41,12 +42,20 @@ def seed_table(table_name):
     print(f"  Reading from: {s3_path}")
 
     try:
-        duck.execute(f"CREATE TABLE temp_{table_name} AS SELECT * FROM read_parquet('{s3_path}');")
-    except:
+        duck.execute(f"CREATE TABLE temp_{table_name} AS SELECT * FROM read_parquet('{s3_path}', union_by_name=true);")
+    except Exception as first_err:
+        print(f"  First pattern failed: {first_err}")
         # Try without subdirectory pattern
         s3_path = f"{S3_BUCKET}/{table_name}/*.parquet"
         print(f"  Trying alternate path: {s3_path}")
-        duck.execute(f"CREATE TABLE temp_{table_name} AS SELECT * FROM read_parquet('{s3_path}');")
+        duck.execute(f"CREATE TABLE temp_{table_name} AS SELECT * FROM read_parquet('{s3_path}', union_by_name=true);")
+
+    # Drop internal columns from data pipeline tools
+    for col in ['_dlt_load_id', '_dlt_id']:
+        try:
+            duck.execute(f"ALTER TABLE temp_{table_name} DROP COLUMN \"{col}\";")
+        except:
+            pass
 
     # Get row count
     row_count = duck.execute(f"SELECT COUNT(*) FROM temp_{table_name}").fetchone()[0]

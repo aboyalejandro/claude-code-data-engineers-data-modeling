@@ -13,7 +13,7 @@ All context in this post: [Claude Code for Data Engineer: MCP Driven Data Modeli
 
 ## 🌿 Branches
 
-- **`main`** — Starting point. Base dbt project with campaigns, sessions, and conversions modeled. The [PRD lives on Miro](https://miro.com/app/board/uXjVGAWWNk0=/) but nothing from it has been implemented yet. Run the workflow here.
+- **`main`** — Starting point. Base dbt project with campaigns, sessions, and conversions modeled. The [PRD lives on Miro](https://miro.com/app/board/uXjVGAWWNk0=/?share_link_id=558250594311) but nothing from it has been implemented yet. Run the workflow here.
 - **`complete`** — Finished reference with all PRD-generated models built out.
 
 ## ⚡ Quick Start
@@ -64,17 +64,29 @@ claude mcp add --transport http miro https://mcp.miro.com/
 3. **Propose schema on Miro** — ERD on the board for stakeholder approval
 4. **Implement & validate** — dbt Agent Skills generate models with schema docs and tests
 
-## 🏗️ Project Structure
+## 🗺️ Sitemap
 
 ```text
-.claude/skills/prd-to-dbt/   # Custom translation Skill
-seed/                         # S3 → PostgreSQL data loader
-dbt/                          # marketing_analytics dbt project
+workflow/                          # Full demo walkthrough
+  DEMO.md                          #   Master guide — start here
+  setup/                           #   Stage 1: Connect Miro MCP
+    MIRO_MCP_SETUP.md              #     Step-by-step connection guide
+    01-05 *.png                    #     Setup screenshots
+  design/                          #   Stage 2: Read PRD + propose ERD
+    DESIGN.md                      #     Schema design walkthrough
+  modeling/                        #   Stage 3: Implement dbt models
+    MODELING.md                    #     dbt implementation walkthrough
+
+.claude/skills/prd-to-dbt/        # Custom translation Skill
+seed/                              # S3 → PostgreSQL data loader
+dbt/                               # marketing_analytics dbt project
   models/
-    staging/                  # 4 staging models
-    marts/                    # 2 marts (campaign_performance, daily_summary)
+    staging/                       #   4 staging models
+    marts/                         #   2 marts (campaign_performance, daily_summary)
 ```
 
-The business PRD lives on [this Miro board](https://miro.com/app/board/uXjVGAWWNk0=/) — Claude reads it directly via Miro MCP during the workflow.
+The business PRD lives on [this Miro board](https://miro.com/app/board/uXjVGAWWNk0=/?share_link_id=558250594311) — Claude reads it directly via Miro MCP during the workflow.
+
+**Follow the demo:** [`workflow/DEMO.md`](workflow/DEMO.md)
 
 ### 📩 Subscribe to [The Pipe & The Line](https://thepipeandtheline.substack.com)
