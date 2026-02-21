@@ -1,0 +1,64 @@
+version: 2
+
+models:
+  - name: int_user_ltv_metrics
+    description: |
+      User-level purchase history aggregation for Customer Lifetime Value analysis.
+      Combines conversion data with first-session acquisition channel to build a
+      complete picture of each user's purchasing behavior.
+
+      Grain: One row per user who has at least one conversion
+      Upstream: stg_conversions, stg_sessions
+    columns:
+      - name: user_id
+        description: Unique identifier for the user
+        data_tests:
+          - not_null
+          - unique
+      - name: acquisition_channel
+        description: Marketing channel from the user's first session
+      - name: first_purchase_date
+        description: Timestamp of the user's first conversion
+      - name: last_purchase_date
+        description: Timestamp of the user's most recent conversion
+      - name: total_conversions
+        description: Total number of conversions for this user
+      - name: total_revenue
+        description: Sum of all conversion values in dollars
+      - name: avg_order_value
+        description: Average conversion value in dollars
+      - name: days_since_first_purchase
+        description: Number of days between first and last purchase
+
+  - name: int_funnel_stages_by_campaign
+    description: |
+      Funnel stage counts aggregated from staging models. Calculates the number of
+      impressions, clicks, sessions, and conversions per campaign, along with
+      drop-off rates between each stage.
+
+      Grain: One row per campaign
+      Upstream: stg_campaigns_daily, stg_sessions, stg_conversions
+    columns:
+      - name: campaign_id
+        description: Unique identifier for the campaign
+        data_tests:
+          - not_null
+          - unique
+      - name: campaign_name
+        description: Name of the campaign
+      - name: channel
+        description: Advertising channel (Meta, Google Ads, LinkedIn, etc.)
+      - name: total_impressions
+        description: Total impressions across all dates for this campaign
+      - name: total_clicks
+        description: Total clicks across all dates for this campaign
+      - name: total_sessions
+        description: Total distinct sessions attributed to this campaign
+      - name: total_conversions
+        description: Total distinct conversions attributed to this campaign
+      - name: click_through_rate
+        description: Rate of impressions that resulted in clicks (clicks / impressions)
+      - name: click_to_session_rate
+        description: Rate of clicks that resulted in sessions (sessions / clicks)
+      - name: session_to_conversion_rate
+        description: Rate of sessions that resulted in conversions (conversions / sessions)

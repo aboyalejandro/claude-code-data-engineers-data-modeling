@@ -1,0 +1,6 @@
+target/
+logs/
+.user.yml
+dbt_packages/
+.venv/
+__pycache__/

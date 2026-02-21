@@ -255,3 +255,75 @@ models:
         description: Overall return on ad spend (total revenue / total spend)
       - name: overall_cpa
         description: Overall cost per acquisition (total spend / total conversions)
+
+  - name: customer_lifetime_value
+    description: |
+      Customer Lifetime Value mart tracking cumulative spend per user over time,
+      segmented by acquisition channel. Includes LTV segmentation (high/medium/low)
+      based on total revenue thresholds.
+
+      Grain: One row per user
+      Upstream: int_user_ltv_metrics
+    columns:
+      - name: user_id
+        description: Unique identifier for the user
+        data_tests:
+          - not_null
+          - unique
+      - name: acquisition_channel
+        description: Marketing channel from the user's first session
+      - name: first_purchase_date
+        description: Timestamp of the user's first conversion
+      - name: last_purchase_date
+        description: Timestamp of the user's most recent conversion
+      - name: total_conversions
+        description: Total number of conversions for this user
+      - name: total_revenue
+        description: Sum of all conversion values in dollars
+      - name: avg_order_value
+        description: Average conversion value in dollars
+      - name: days_since_first_purchase
+        description: Number of days between first and last purchase
+      - name: ltv_segment
+        description: |
+          LTV segmentation based on total revenue:
+          - 'high': Total revenue >= $500
+          - 'medium': Total revenue >= $100
+          - 'low': Total revenue < $100
+
+  - name: funnel_conversion_analysis
+    description: |
+      Funnel conversion analysis mart tracking the full funnel from impression to
+      conversion per campaign and channel. Includes drop-off rates at each stage
+      and a funnel efficiency score (percentile ranking across all campaigns).
+
+      Grain: One row per campaign
+      Upstream: int_funnel_stages_by_campaign
+    columns:
+      - name: campaign_id
+        description: Unique identifier for the campaign
+        data_tests:
+          - not_null
+          - unique
+      - name: campaign_name
+        description: Name of the campaign
+      - name: channel
+        description: Advertising channel (Meta, Google Ads, LinkedIn, etc.)
+      - name: total_impressions
+        description: Total impressions across all dates for this campaign
+      - name: total_clicks
+        description: Total clicks across all dates for this campaign
+      - name: total_sessions
+        description: Total distinct sessions attributed to this campaign
+      - name: total_conversions
+        description: Total distinct conversions attributed to this campaign
+      - name: click_through_rate
+        description: Rate of impressions that resulted in clicks
+      - name: click_to_session_rate
+        description: Rate of clicks that resulted in sessions
+      - name: session_to_conversion_rate
+        description: Rate of sessions that resulted in conversions
+      - name: overall_funnel_efficiency
+        description: End-to-end funnel efficiency (conversions / impressions)
+      - name: funnel_efficiency_score
+        description: Percentile ranking of funnel efficiency across all campaigns (0 to 1)

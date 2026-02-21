@@ -1,131 +1,51 @@
-# PRD: Customer Lifetime Value & Funnel Analysis
+# PRD: Customer Insights for Marketing
 
-> This document represents the content of the Miro board used as the product requirements document. In practice, `miro_get_board_content` extracts this from sticky notes, text blocks, and diagram elements on the board.
+> This document represents the business requirements as they'd appear on a Miro board — sticky notes from product and stakeholders. No technical specs, no column names. Just what the business needs.
 
 ---
 
 ## Business Context
 
-The marketing analytics team needs deeper insight into two areas:
+The marketing team wants to answer two questions they currently can't:
 
-1. **Customer Lifetime Value (CLV)** — Understanding how much revenue each user generates over time, segmented by how they were acquired.
-2. **Funnel Conversion Analysis** — Tracking where users drop off between impression → click → session → conversion, per campaign and channel.
+1. **"How much is each customer worth to us over time, and does it depend on where they came from?"**
+   - We spend differently across Google Ads, Meta, LinkedIn, etc. We need to know which channels bring in customers that keep buying vs. one-time buyers.
+   - We want to segment customers into tiers so we can adjust budget allocation.
 
-These models extend the existing `marketing_analytics` dbt project, which already has staging models for campaigns, sessions, conversions, and attribution touchpoints.
-
----
-
-## New Models Required
-
-### Mart: `customer_lifetime_value`
-
-**Purpose:** Track cumulative spend per user over time, segmented by acquisition channel.
-
-**Columns:**
-- `user_id` — Primary key
-- `acquisition_channel` — Channel of the user's first session
-- `first_purchase_date` — Date of first conversion
-- `last_purchase_date` — Date of most recent conversion
-- `total_conversions` — Count of all conversions
-- `total_revenue` — Sum of all conversion values
-- `avg_order_value` — Average conversion value
-- `days_since_first_purchase` — Days between first purchase and most recent purchase
-- `ltv_segment` — Categorization: 'high' (≥$500), 'medium' (≥$100), 'low' (<$100)
-
-**Grain:** One row per user.
+2. **"Where are we losing people in the funnel?"**
+   - We know how many impressions we serve and how many conversions we get, but we don't know where the drop-off happens.
+   - Is it impressions → clicks? Clicks → website visits? Visits → purchases?
+   - We need this per campaign so we can kill the underperformers.
 
 ---
 
-### Mart: `funnel_conversion_analysis`
+## What We Need
 
-**Purpose:** Track the funnel from impression → click → session → conversion per campaign/channel.
+### Customer Lifetime Value
+- Total revenue per customer over their entire history
+- Which acquisition channel brought them in
+- When they first and last purchased
+- How many purchases they've made
+- A simple segmentation: high-value, medium-value, low-value customers
+- We define "high" as $500+, "medium" as $100-499, "low" as under $100
 
-**Columns:**
-- `campaign_id` — Foreign key to campaigns
-- `campaign_name` — Name of the campaign
-- `channel` — Advertising channel
-- `total_impressions` — Count of impressions
-- `total_clicks` — Count of clicks
-- `total_sessions` — Count of sessions
-- `total_conversions` — Count of conversions
-- `click_through_rate` — clicks / impressions
-- `click_to_session_rate` — sessions / clicks
-- `session_to_conversion_rate` — conversions / sessions
-- `overall_funnel_efficiency` — conversions / impressions
-- `funnel_efficiency_score` — Relative ranking (percentile) of overall efficiency across campaigns
-
-**Grain:** One row per campaign.
+### Funnel Drop-Off Analysis
+- For each campaign: how many impressions, clicks, website sessions, and conversions
+- The conversion rate between each stage
+- An overall efficiency score so we can rank campaigns against each other
+- We want to spot which campaigns have great click-through but terrible session-to-conversion rates
 
 ---
 
-### Intermediate: `int_user_ltv_metrics`
+## Stakeholder Notes
 
-**Purpose:** Aggregate user-level purchase history from staging models.
-
-**Upstream dependencies:** `stg_conversions`, `stg_sessions`
-
-**Columns:**
-- `user_id` — Primary key
-- `acquisition_channel` — Channel from user's first session
-- `first_purchase_date` — Earliest conversion timestamp
-- `last_purchase_date` — Latest conversion timestamp
-- `total_conversions` — Count of conversions
-- `total_revenue` — Sum of conversion values
-- `avg_order_value` — Average conversion value
-- `days_since_first_purchase` — Date difference between first and last purchase
-
-**Grain:** One row per user who has at least one conversion.
+- **Head of Marketing:** "I want a single view per customer showing their lifetime value and the channel that acquired them. Simple."
+- **Campaign Manager:** "Give me a funnel breakdown per campaign. I need to know where the money is leaking."
+- **Data Analyst:** "We already have all this raw data in our warehouse. Sessions, conversions, campaign metrics — it's all there. We just don't have the models that connect them."
 
 ---
 
-### Intermediate: `int_funnel_stages_by_campaign`
+## Open Questions
 
-**Purpose:** Calculate funnel stage counts from existing staging models.
-
-**Upstream dependencies:** `stg_campaigns_daily`, `stg_sessions`, `stg_conversions`
-
-**Columns:**
-- `campaign_id` — Primary key
-- `campaign_name` — Name of the campaign
-- `channel` — Advertising channel
-- `total_impressions` — Sum of impressions from campaigns_daily
-- `total_clicks` — Sum of clicks from campaigns_daily
-- `total_sessions` — Count of distinct sessions
-- `total_conversions` — Count of distinct conversions
-- `click_through_rate` — clicks / impressions
-- `click_to_session_rate` — sessions / clicks
-- `session_to_conversion_rate` — conversions / sessions
-
-**Grain:** One row per campaign.
-
----
-
-### Staging: `stg_ad_creatives`
-
-**Purpose:** Clean the raw `ad_creatives` source table, which exists in the source definition but has no staging model yet.
-
-**Upstream dependencies:** `source('marketing_raw', 'ad_creatives')`
-
-**Columns:**
-- `creative_id` — Primary key
-- `campaign_id` — Foreign key to campaigns
-- `creative_type` — Type of creative (image, video, carousel)
-- `creative_name` — Name of the creative
-- `impressions` — Number of impressions
-- `clicks` — Number of clicks
-- `ctr` — Click-through rate
-- `spend` — Amount spent on this creative
-- `calculated_ctr` — Calculated CTR (clicks / impressions) for validation
-
-**Grain:** One row per creative.
-
----
-
-## Acceptance Criteria
-
-- [ ] All models follow existing naming conventions (`stg_`, `int_`, no prefix for marts)
-- [ ] All models have schema YAML with column descriptions
-- [ ] Key columns have `not_null` and `unique` tests where appropriate
-- [ ] Calculations use `::float` for division and `COALESCE` for null handling
-- [ ] Unit tests cover LTV segmentation logic and funnel drop-off calculations
-- [ ] All models materialize as views (consistent with existing project)
+- Do we want the funnel analysis at the campaign level or also at the channel level? → Start with campaign, aggregate to channel later if needed.
+- Should LTV include attribution weighting? → No, keep it simple. Total conversion value per user.
