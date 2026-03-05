@@ -154,3 +154,63 @@ models:
       - name: overall_cpa
         description: Overall cost per acquisition (total spend / total conversions)
 
+  - name: customer_lifetime_value
+    description: |
+      Customer lifetime value with acquisition channel and tier segmentation.
+      Answers: "How much is each customer worth and where did they come from?"
+
+      Grain: One row per user_id
+    columns:
+      - name: user_id
+        description: Unique identifier for the customer
+        data_tests:
+          - not_null
+          - unique
+      - name: total_revenue
+        description: Total conversion value across all purchases
+      - name: total_orders
+        description: Number of distinct purchases
+      - name: first_purchase_date
+        description: Date of the customer's first purchase
+      - name: last_purchase_date
+        description: Date of the customer's most recent purchase
+      - name: acquisition_channel
+        description: Channel of the customer's earliest first-touch attribution touchpoint
+      - name: ltv_tier
+        description: "Customer segment: high ($500+), medium ($100-499), low (under $100)"
+
+  - name: campaign_funnel_analysis
+    description: |
+      Campaign funnel with stage-to-stage conversion rates and efficiency score.
+      Answers: "Where are we losing people in the funnel, per campaign?"
+
+      Grain: One row per campaign_id
+    columns:
+      - name: campaign_id
+        description: Unique identifier for the campaign
+        data_tests:
+          - not_null
+          - unique
+      - name: campaign_name
+        description: Name of the campaign
+      - name: channel
+        description: Marketing channel
+      - name: total_impressions
+        description: Total impressions across all dates
+      - name: total_clicks
+        description: Total clicks across all dates
+      - name: total_sessions
+        description: Total sessions attributed to this campaign
+      - name: total_conversions
+        description: Total conversions attributed to this campaign
+      - name: total_revenue
+        description: Total revenue from conversions
+      - name: impression_to_click_rate
+        description: Click-through rate (clicks / impressions)
+      - name: click_to_session_rate
+        description: Rate of clicks that became sessions
+      - name: session_to_conversion_rate
+        description: Rate of sessions that converted
+      - name: efficiency_score
+        description: Overall funnel throughput (conversions / impressions) for ranking campaigns
+
