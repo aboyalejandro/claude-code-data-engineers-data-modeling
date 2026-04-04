@@ -2,101 +2,153 @@ version: 2
 
 models:
   - name: campaign_performance
-    description: |
-      Complete campaign performance fact table combining spend, impressions, clicks,
-      sessions, and conversions. This is the primary table for analyzing campaign ROI
-      and performance metrics.
-
-      Grain: One row per campaign per date
-
-      Key metrics:
-      - Advertising metrics (spend, impressions, clicks, CTR, CPC)
-      - Session metrics (sessions, users, engagement, device breakdown)
-      - Conversion metrics (conversions, revenue, AOV)
-      - Calculated KPIs (conversion rate, ROAS, CPA, click-to-session rate)
+    description: >
+      [Business Purpose] Answers how each campaign performs day-over-day across
+      spend, engagement, and revenue. Primary table for campaign ROI analysis,
+      budget allocation decisions, and channel comparison.
+      [How It's Used] Marketing and analytics teams use it to evaluate individual
+      campaign efficiency, compare channels, and identify underperforming campaigns
+      for optimization or pausing.
+      [Data Grain] One row per campaign per date. Built from stg_campaigns_daily
+      (left joined with stg_sessions and stg_conversions aggregated to the same grain).
+      [Known Issues / Caveats] Session and conversion metrics are COALESCEd to 0
+      when no matching sessions or conversions exist for a campaign-date. A row with
+      total_sessions = 0 means no sessions were recorded, not that the data is missing.
+      Calculated KPIs (roas, cost_per_conversion, conversion_rate, click_to_session_rate)
+      return 0 when the denominator is zero rather than NULL. Campaigns with zero spend
+      will show roas = 0 even if they generated organic revenue through attributed conversions.
     columns:
       - name: campaign_id
-        description: Unique identifier for the campaign
+        description: Unique identifier for the campaign, from stg_campaigns_daily
         data_tests:
           - not_null
       - name: date
-        description: Date of the performance metrics
+        description: >
+          Date of the performance metrics.
+          [Known Issues / Caveats] Part of the composite grain (campaign_id + date)
+          but only has a not_null test. No unique test exists on the composite key.
         data_tests:
           - not_null
       - name: campaign_name
-        description: Name of the campaign
+        description: Human-readable campaign name from the source system
       - name: channel
-        description: Marketing channel (Meta, Google Ads, LinkedIn, etc.)
+        description: >
+          Marketing channel (e.g. Meta, Google Ads, LinkedIn).
+          [Known Issues / Caveats] Values come directly from the source with no
+          standardization. Check distinct values before grouping or filtering.
       - name: status
-        description: Campaign status (active, paused, etc.)
+        description: Campaign status from the source system (e.g. active, paused)
 
       # Spend metrics
       - name: daily_budget
-        description: Daily budget allocated for the campaign in dollars
+        description: Daily budget allocated for the campaign in dollars, as declared in the source
       - name: spend
-        description: Actual amount spent on the campaign in dollars
+        description: Actual amount spent on the campaign for this date in dollars
 
       # Impression & Click metrics
       - name: impressions
-        description: Number of ad impressions served
+        description: Number of ad impressions served on this date
       - name: clicks
-        description: Number of clicks on ads
+        description: Number of clicks on ads on this date
       - name: ctr
-        description: Click-through rate (clicks / impressions)
+        description: >
+          Click-through rate (clicks / impressions) from the source system.
+          [Known Issues / Caveats] Pre-calculated in stg_campaigns_daily, not derived
+          in this model. May not exactly equal clicks / impressions due to source rounding.
       - name: cpc
-        description: Cost per click in dollars
+        description: >
+          Cost per click in dollars from the source system.
+          [Known Issues / Caveats] Pre-calculated in stg_campaigns_daily, not derived
+          in this model. May not exactly equal spend / clicks due to source rounding.
 
       # Session metrics
       - name: total_sessions
-        description: Total number of website sessions from this campaign
+        description: >
+          Count of distinct website sessions attributed to this campaign on this date.
+          [Known Issues / Caveats] COALESCEd to 0 when no sessions exist for this
+          campaign-date. A value of 0 means no sessions were recorded.
       - name: unique_users
-        description: Number of unique users who had sessions
+        description: >
+          Count of distinct users who had sessions attributed to this campaign on this date.
+          [Known Issues / Caveats] COALESCEd to 0 when no sessions exist.
       - name: avg_session_duration
-        description: Average session duration in seconds
+        description: >
+          Average session duration in seconds for this campaign-date.
+          [Known Issues / Caveats] COALESCEd to 0 when no sessions exist. A value
+          of 0 could mean either no sessions or sessions with zero duration.
       - name: avg_pages_per_session
-        description: Average number of pages viewed per session
+        description: >
+          Average number of pages viewed per session for this campaign-date.
+          [Known Issues / Caveats] COALESCEd to 0 when no sessions exist.
       - name: engaged_sessions
-        description: Number of sessions classified as engaged
+        description: >
+          Number of sessions classified as "engaged" based on engagement_level
+          from stg_sessions.
+          [Known Issues / Caveats] COALESCEd to 0 when no sessions exist.
       - name: mobile_sessions
-        description: Number of sessions from mobile devices
+        description: Number of sessions from mobile devices. COALESCEd to 0 when no sessions exist.
       - name: desktop_sessions
-        description: Number of sessions from desktop devices
+        description: Number of sessions from desktop devices. COALESCEd to 0 when no sessions exist.
 
       # Conversion metrics
       - name: total_conversions
-        description: Total number of conversions attributed to this campaign
+        description: >
+          Total number of conversions attributed to this campaign on this date.
+          [Known Issues / Caveats] COALESCEd to 0 when no conversions exist.
+          Attribution is based on attributed_campaign_id from stg_conversions.
       - name: converting_users
-        description: Number of unique users who converted
+        description: >
+          Number of distinct users who converted, attributed to this campaign on this date.
+          [Known Issues / Caveats] COALESCEd to 0 when no conversions exist.
       - name: total_revenue
-        description: Total revenue from conversions in dollars
+        description: >
+          Total revenue from conversions attributed to this campaign on this date, in dollars.
+          [Known Issues / Caveats] COALESCEd to 0 when no conversions exist. A campaign-date
+          with total_revenue = 0 and total_conversions = 0 means no conversions happened.
       - name: avg_order_value
-        description: Average order value (revenue per conversion)
+        description: >
+          Average conversion value (revenue per conversion) for this campaign-date.
+          [Known Issues / Caveats] COALESCEd to 0 when no conversions exist. Does not
+          represent a true average when total_conversions = 0.
 
       # Calculated KPIs
       - name: conversion_rate
-        description: Conversion rate (conversions / sessions)
+        description: >
+          Conversion rate calculated as total_conversions / total_sessions.
+          [Known Issues / Caveats] Returns 0 (not NULL) when total_sessions = 0.
+          Uses ::float casting for precision. Derived in this model, not from source.
       - name: roas
-        description: Return on ad spend (revenue / spend)
+        description: >
+          Return on ad spend calculated as total_revenue / spend.
+          [Known Issues / Caveats] Returns 0 (not NULL) when spend = 0. A campaign
+          with zero spend but attributed conversions will show roas = 0, which
+          understates actual return. Check spend > 0 before using this for ROI comparison.
       - name: cost_per_conversion
-        description: Cost per acquisition - spend divided by conversions
+        description: >
+          Cost per acquisition calculated as spend / total_conversions.
+          [Known Issues / Caveats] Returns 0 (not NULL) when total_conversions = 0.
+          A value of 0 means no conversions happened, not free conversions.
       - name: click_to_session_rate
-        description: Rate of clicks that resulted in sessions
+        description: >
+          Proportion of clicks that resulted in tracked sessions, calculated as
+          total_sessions / clicks.
+          [Known Issues / Caveats] Returns 0 (not NULL) when clicks = 0. Values > 1
+          are possible if sessions are attributed through non-click touchpoints.
 
   - name: daily_summary
-    description: |
-      Daily rollup summary fact table aggregating all campaign performance
-      across the entire business. Provides a high-level view of marketing
-      performance over time.
-
-      Grain: One row per date
-
-      Key metrics:
-      - Campaign and channel activity levels
-      - Total spend and budget utilization
-      - Aggregate advertising performance
-      - Overall session and user engagement
-      - Total conversions and revenue
-      - Portfolio-level KPIs (conversion rate, ROAS, CPA)
+    description: >
+      [Business Purpose] Portfolio-level daily rollup of all campaign performance.
+      Answers how the overall marketing program is performing day-over-day and
+      whether budget is being spent efficiently across all campaigns.
+      [How It's Used] Leadership and marketing ops use it for daily performance
+      monitoring, budget pacing, and trend analysis across the full portfolio.
+      [Data Grain] One row per date. Aggregated from campaign_performance
+      (all campaigns summed/averaged per date).
+      [Known Issues / Caveats] KPI columns (budget_utilization, overall_conversion_rate,
+      overall_roas, overall_cpa) use NULLIF on the denominator, which means they
+      return NULL when the denominator is zero. This is different from campaign_performance,
+      where the same type of metrics return 0. Filter or COALESCE these columns if
+      you need consistent zero-handling across both models.
     columns:
       - name: date
         description: Date of the summary metrics
@@ -106,51 +158,80 @@ models:
 
       # Campaign metrics
       - name: active_campaigns
-        description: Number of distinct campaigns active on this date
+        description: Count of distinct campaigns with activity on this date
       - name: active_channels
-        description: Number of distinct channels with activity
+        description: Count of distinct marketing channels with activity on this date
 
       # Spend metrics
       - name: total_spend
-        description: Total amount spent across all campaigns in dollars
+        description: Sum of spend across all campaigns on this date, in dollars
       - name: total_budget
-        description: Total budget allocated across all campaigns
+        description: Sum of daily_budget across all campaigns on this date, in dollars
       - name: budget_utilization
-        description: Percentage of budget actually spent (spend / budget)
+        description: >
+          Ratio of total spend to total budget (spend / budget) for this date.
+          [Known Issues / Caveats] Uses NULLIF, so returns NULL (not 0) when
+          total_budget = 0. Handle NULLs before aggregating or comparing with
+          campaign_performance metrics which return 0 for similar edge cases.
 
       # Impression & Click metrics
       - name: total_impressions
-        description: Total ad impressions across all campaigns
+        description: Sum of impressions across all campaigns on this date
       - name: total_clicks
-        description: Total clicks across all campaigns
+        description: Sum of clicks across all campaigns on this date
       - name: avg_ctr
-        description: Average click-through rate across campaigns
+        description: >
+          Average click-through rate across campaigns on this date.
+          [Known Issues / Caveats] This is an average of per-campaign CTRs,
+          not total_clicks / total_impressions. Small campaigns with high CTR
+          will skew this upward.
       - name: avg_cpc
-        description: Average cost per click across campaigns
+        description: >
+          Average cost per click across campaigns on this date.
+          [Known Issues / Caveats] This is an average of per-campaign CPCs,
+          not total_spend / total_clicks. Same skew caveat as avg_ctr.
 
       # Session metrics
       - name: total_sessions
-        description: Total website sessions from all campaigns
+        description: Sum of sessions across all campaigns on this date
       - name: total_users
-        description: Total unique users across all campaigns
+        description: >
+          Sum of unique_users across all campaigns on this date.
+          [Known Issues / Caveats] This sums per-campaign unique user counts,
+          so users active across multiple campaigns are counted more than once.
+          This is not a true deduplicated user count.
       - name: avg_session_duration
-        description: Average session duration in seconds
+        description: Average session duration in seconds across campaigns on this date
       - name: avg_pages_per_session
-        description: Average pages viewed per session
+        description: Average pages viewed per session across campaigns on this date
 
       # Conversion metrics
       - name: total_conversions
-        description: Total conversions across all campaigns
+        description: Sum of conversions across all campaigns on this date
       - name: total_revenue
-        description: Total revenue from all conversions in dollars
+        description: Sum of revenue across all campaigns on this date, in dollars
       - name: avg_order_value
-        description: Average order value across all conversions
+        description: >
+          Average order value across all conversions on this date.
+          [Known Issues / Caveats] This is an average of per-campaign AOVs,
+          not total_revenue / total_conversions.
 
       # Calculated KPIs
       - name: overall_conversion_rate
-        description: Overall conversion rate (total conversions / total sessions)
+        description: >
+          Portfolio conversion rate calculated as total_conversions / total_sessions.
+          [Known Issues / Caveats] Uses NULLIF, so returns NULL (not 0) when
+          total_sessions = 0. Different null-handling from campaign_performance.conversion_rate
+          which returns 0.
       - name: overall_roas
-        description: Overall return on ad spend (total revenue / total spend)
+        description: >
+          Portfolio return on ad spend calculated as total_revenue / total_spend.
+          [Known Issues / Caveats] Uses NULLIF, so returns NULL (not 0) when
+          total_spend = 0. Different null-handling from campaign_performance.roas
+          which returns 0.
       - name: overall_cpa
-        description: Overall cost per acquisition (total spend / total conversions)
-
+        description: >
+          Portfolio cost per acquisition calculated as total_spend / total_conversions.
+          [Known Issues / Caveats] Uses NULLIF, so returns NULL (not 0) when
+          total_conversions = 0. Different null-handling from campaign_performance.cost_per_conversion
+          which returns 0.
