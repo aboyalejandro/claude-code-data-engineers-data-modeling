@@ -2,236 +2,194 @@ version: 2
 
 models:
   - name: campaign_performance
-    description: >
-      [Business Purpose] Answers how each campaign performs day-over-day across
-      spend, engagement, and revenue. Primary table for campaign ROI analysis,
-      budget allocation decisions, and channel comparison.
-      [How It's Used] Marketing and analytics teams use it to evaluate individual
-      campaign efficiency, compare channels, and identify underperforming campaigns
-      for optimization or pausing.
-      [Data Grain] One row per campaign per date. Built from stg_campaigns_daily
-      (left joined with stg_sessions and stg_conversions aggregated to the same grain).
-      [Known Issues / Caveats] Session and conversion metrics are COALESCEd to 0
-      when no matching sessions or conversions exist for a campaign-date. A row with
-      total_sessions = 0 means no sessions were recorded, not that the data is missing.
-      Calculated KPIs (roas, cost_per_conversion, conversion_rate, click_to_session_rate)
-      return 0 when the denominator is zero rather than NULL. Campaigns with zero spend
-      will show roas = 0 even if they generated organic revenue through attributed conversions.
+    description: |
+      [Business Purpose] Answers how each campaign performs day-over-day across spend efficiency, audience engagement, and revenue attribution. Primary table for diagnosing which campaigns justify continued investment and which need reallocation.
+
+      [How It's Used] Marketing analysts use it for daily performance reviews and budget reallocation decisions. BI dashboards pull ROAS, CPA, and conversion rate trends from this table. AI agents use it to surface underperforming campaigns and recommend optimizations.
+
+      [Data Grain] One row per campaign per date. Joins stg_campaigns_daily (spine) with stg_sessions and stg_conversions via LEFT JOIN on campaign_id + date.
+
+      [Known Issues / Caveats] Session and conversion columns are COALESCE'd to 0 on LEFT JOIN misses — a zero value means "no matching session/conversion data", not "measured zero". avg_order_value reads 0 when there are no conversions (41 of 400 rows), which is misleading — filter to total_conversions > 0 before averaging. total_sessions is uniformly 110 across all campaign-dates in the current dataset, suggesting synthetic or incomplete session source data. Date 2025-12-20 is missing from the source and propagates as a gap here. Calculated KPIs (conversion_rate, roas, cost_per_conversion, click_to_session_rate) fall back to 0 when their denominator is zero rather than returning NULL.
     columns:
       - name: campaign_id
-        description: Unique identifier for the campaign, from stg_campaigns_daily
+        description: "[Business Purpose] Identifies which campaign a row belongs to. Join key for linking to campaign metadata or other campaign-scoped tables. Part of the composite grain with date."
         data_tests:
           - not_null
       - name: date
-        description: >
-          Date of the performance metrics.
-          [Known Issues / Caveats] Part of the composite grain (campaign_id + date)
-          but only has a not_null test. No unique test exists on the composite key.
+        description: "[Business Purpose] Calendar date the metrics were recorded. Part of the composite grain with campaign_id. Use for time-series analysis and trend detection."
         data_tests:
           - not_null
       - name: campaign_name
-        description: Human-readable campaign name from the source system
+        description: "[Business Purpose] Human-readable label assigned to the campaign at creation. Use for display in reports and dashboards — not stable as a join key since names can be edited."
       - name: channel
-        description: >
-          Marketing channel (e.g. Meta, Google Ads, LinkedIn).
-          [Known Issues / Caveats] Values come directly from the source with no
-          standardization. Check distinct values before grouping or filtering.
+        description: "[Business Purpose] Marketing platform where the campaign runs (google_ads, meta, linkedin, tiktok, twitter, pinterest, reddit, snapchat). Use for channel-mix analysis and cross-platform benchmarking."
       - name: status
-        description: Campaign status from the source system (e.g. active, paused)
+        description: "[Business Purpose] Operational state of the campaign (active, paused). Paused campaigns still have historical rows — filter to status = 'active' for live performance views."
 
       # Spend metrics
       - name: daily_budget
-        description: Daily budget allocated for the campaign in dollars, as declared in the source
+        description: "[Business Purpose] Maximum amount the campaign is configured to spend per day in dollars. Compare against actual spend to assess pacing and budget headroom."
       - name: spend
-        description: Actual amount spent on the campaign for this date in dollars
+        description: "[Business Purpose] Actual dollars spent on the campaign for this date. Primary cost input for efficiency KPIs (ROAS, CPA, CPC). Always > 0 in current data — no zero-spend days observed."
 
       # Impression & Click metrics
       - name: impressions
-        description: Number of ad impressions served on this date
+        description: "[Business Purpose] Number of times ads were shown to users. Top-of-funnel volume metric — divide clicks by impressions to get CTR."
       - name: clicks
-        description: Number of clicks on ads on this date
+        description: "[Business Purpose] Number of ad clicks recorded by the ad platform. Measures intent signal from impressions. Compare against total_sessions to detect click-to-session drop-off."
       - name: ctr
-        description: >
-          Click-through rate (clicks / impressions) from the source system.
-          [Known Issues / Caveats] Pre-calculated in stg_campaigns_daily, not derived
-          in this model. May not exactly equal clicks / impressions due to source rounding.
+        description: "[Business Purpose] Click-through rate: clicks divided by impressions. Measures ad creative effectiveness. Sourced directly from stg_campaigns_daily, not recalculated here."
       - name: cpc
-        description: >
-          Cost per click in dollars from the source system.
-          [Known Issues / Caveats] Pre-calculated in stg_campaigns_daily, not derived
-          in this model. May not exactly equal spend / clicks due to source rounding.
+        description: "[Business Purpose] Cost per click: spend divided by clicks. Measures auction efficiency for the campaign. Sourced from stg_campaigns_daily."
 
       # Session metrics
       - name: total_sessions
-        description: >
-          Count of distinct website sessions attributed to this campaign on this date.
-          [Known Issues / Caveats] COALESCEd to 0 when no sessions exist for this
-          campaign-date. A value of 0 means no sessions were recorded.
+        description: |
+          [Business Purpose] Count of distinct website sessions attributed to this campaign on this date. Measures how effectively ad clicks convert into site visits.
+          [Known Issues / Caveats] COALESCE'd to 0 when no session data matches — zero means "no data", not "no sessions". Currently reads 110 for every campaign-date in the dataset, which is suspiciously uniform and likely reflects synthetic source data.
       - name: unique_users
-        description: >
-          Count of distinct users who had sessions attributed to this campaign on this date.
-          [Known Issues / Caveats] COALESCEd to 0 when no sessions exist.
+        description: |
+          [Business Purpose] Count of distinct users who had at least one session from this campaign on this date. Lower than total_sessions when users visit multiple times.
+          [Known Issues / Caveats] COALESCE'd to 0 on LEFT JOIN miss.
       - name: avg_session_duration
-        description: >
-          Average session duration in seconds for this campaign-date.
-          [Known Issues / Caveats] COALESCEd to 0 when no sessions exist. A value
-          of 0 could mean either no sessions or sessions with zero duration.
+        description: |
+          [Business Purpose] Mean session length in seconds for sessions attributed to this campaign-date. Proxy for content engagement quality.
+          [Known Issues / Caveats] COALESCE'd to 0 when no sessions match — a 0 here is not a real measurement.
       - name: avg_pages_per_session
-        description: >
-          Average number of pages viewed per session for this campaign-date.
-          [Known Issues / Caveats] COALESCEd to 0 when no sessions exist.
+        description: |
+          [Business Purpose] Mean number of pages viewed per session. Indicates depth of user engagement with the site after clicking through.
+          [Known Issues / Caveats] COALESCE'd to 0 when no sessions match.
       - name: engaged_sessions
-        description: >
-          Number of sessions classified as "engaged" based on engagement_level
-          from stg_sessions.
-          [Known Issues / Caveats] COALESCEd to 0 when no sessions exist.
+        description: |
+          [Business Purpose] Count of sessions classified as "engaged" by the engagement_level field in stg_sessions. Useful for filtering out bounce-like visits when calculating quality metrics.
+          [Known Issues / Caveats] COALESCE'd to 0 on LEFT JOIN miss.
       - name: mobile_sessions
-        description: Number of sessions from mobile devices. COALESCEd to 0 when no sessions exist.
+        description: |
+          [Business Purpose] Sessions from mobile devices. Use alongside desktop_sessions for device-mix analysis and to inform creative strategy (mobile-optimized vs desktop).
+          [Known Issues / Caveats] COALESCE'd to 0 on LEFT JOIN miss.
       - name: desktop_sessions
-        description: Number of sessions from desktop devices. COALESCEd to 0 when no sessions exist.
+        description: |
+          [Business Purpose] Sessions from desktop devices. Complement to mobile_sessions for device segmentation.
+          [Known Issues / Caveats] COALESCE'd to 0 on LEFT JOIN miss.
 
       # Conversion metrics
       - name: total_conversions
-        description: >
-          Total number of conversions attributed to this campaign on this date.
-          [Known Issues / Caveats] COALESCEd to 0 when no conversions exist.
-          Attribution is based on attributed_campaign_id from stg_conversions.
+        description: |
+          [Business Purpose] Count of distinct conversions attributed to this campaign-date. Bottom-of-funnel outcome metric used to calculate conversion_rate, ROAS, and CPA.
+          [Known Issues / Caveats] COALESCE'd to 0 when no conversions match (41 of 400 rows). Zero means "no attributed conversions", not a measurement error.
       - name: converting_users
-        description: >
-          Number of distinct users who converted, attributed to this campaign on this date.
-          [Known Issues / Caveats] COALESCEd to 0 when no conversions exist.
+        description: |
+          [Business Purpose] Count of distinct users who converted. Lower than total_conversions when a single user converts multiple times.
+          [Known Issues / Caveats] COALESCE'd to 0 on LEFT JOIN miss.
       - name: total_revenue
-        description: >
-          Total revenue from conversions attributed to this campaign on this date, in dollars.
-          [Known Issues / Caveats] COALESCEd to 0 when no conversions exist. A campaign-date
-          with total_revenue = 0 and total_conversions = 0 means no conversions happened.
+        description: |
+          [Business Purpose] Sum of conversion values in dollars attributed to this campaign-date. Primary revenue input for ROAS calculation.
+          [Known Issues / Caveats] COALESCE'd to 0 when no conversions exist. Zero revenue is always paired with zero conversions.
       - name: avg_order_value
-        description: >
-          Average conversion value (revenue per conversion) for this campaign-date.
-          [Known Issues / Caveats] COALESCEd to 0 when no conversions exist. Does not
-          represent a true average when total_conversions = 0.
+        description: |
+          [Business Purpose] Mean revenue per conversion (total_revenue / total_conversions). Indicates the value profile of customers acquired through this campaign.
+          [Known Issues / Caveats] COALESCE'd to 0 when there are no conversions — this is misleading. Filter to total_conversions > 0 before using this column in averages or comparisons.
 
       # Calculated KPIs
       - name: conversion_rate
-        description: >
-          Conversion rate calculated as total_conversions / total_sessions.
-          [Known Issues / Caveats] Returns 0 (not NULL) when total_sessions = 0.
-          Uses ::float casting for precision. Derived in this model, not from source.
+        description: |
+          [Business Purpose] Conversions divided by sessions. Measures how effectively site traffic converts to revenue events. Core efficiency KPI for campaign optimization.
+          [Known Issues / Caveats] Returns 0 when total_sessions is 0 (denominator guard), not NULL. Downstream consumers should treat 0 with caution — it may mean "no data" rather than "zero conversions from real traffic".
       - name: roas
-        description: >
-          Return on ad spend calculated as total_revenue / spend.
-          [Known Issues / Caveats] Returns 0 (not NULL) when spend = 0. A campaign
-          with zero spend but attributed conversions will show roas = 0, which
-          understates actual return. Check spend > 0 before using this for ROI comparison.
+        description: |
+          [Business Purpose] Return on ad spend: total_revenue divided by spend. Values above 1.0 mean the campaign generates more revenue than it costs. Primary profitability signal.
+          [Known Issues / Caveats] Returns 0 when spend is 0 (denominator guard). Current range: 0.07 to 6.20 — wide spread indicates significant performance variation across campaigns.
       - name: cost_per_conversion
-        description: >
-          Cost per acquisition calculated as spend / total_conversions.
-          [Known Issues / Caveats] Returns 0 (not NULL) when total_conversions = 0.
-          A value of 0 means no conversions happened, not free conversions.
+        description: |
+          [Business Purpose] Spend divided by total conversions. Measures acquisition cost per conversion event. Lower is better — compare against avg_order_value to assess unit economics.
+          [Known Issues / Caveats] Returns 0 when total_conversions is 0 (denominator guard). A 0 here means "no conversions to divide by", not "free acquisitions".
       - name: click_to_session_rate
-        description: >
-          Proportion of clicks that resulted in tracked sessions, calculated as
-          total_sessions / clicks.
-          [Known Issues / Caveats] Returns 0 (not NULL) when clicks = 0. Values > 1
-          are possible if sessions are attributed through non-click touchpoints.
+        description: |
+          [Business Purpose] Sessions divided by clicks. Measures what fraction of ad clicks result in tracked site sessions. Values below 1.0 indicate attribution or tracking gaps between the ad platform and site analytics.
+          [Known Issues / Caveats] Returns 0 when clicks is 0 (denominator guard).
 
   - name: daily_summary
-    description: >
-      [Business Purpose] Portfolio-level daily rollup of all campaign performance.
-      Answers how the overall marketing program is performing day-over-day and
-      whether budget is being spent efficiently across all campaigns.
-      [How It's Used] Leadership and marketing ops use it for daily performance
-      monitoring, budget pacing, and trend analysis across the full portfolio.
-      [Data Grain] One row per date. Aggregated from campaign_performance
-      (all campaigns summed/averaged per date).
-      [Known Issues / Caveats] KPI columns (budget_utilization, overall_conversion_rate,
-      overall_roas, overall_cpa) use NULLIF on the denominator, which means they
-      return NULL when the denominator is zero. This is different from campaign_performance,
-      where the same type of metrics return 0. Filter or COALESCE these columns if
-      you need consistent zero-handling across both models.
+    description: |
+      [Business Purpose] Answers how the overall marketing portfolio performs day-over-day. Enables executives and analysts to spot macro trends in spend efficiency, audience reach, and revenue without drilling into individual campaigns.
+
+      [How It's Used] Executive dashboards for daily marketing health. Week-over-week and month-over-month trend analysis. Anomaly detection for total spend or conversion drops. AI agents use it as a starting point before drilling into campaign_performance for root cause.
+
+      [Data Grain] One row per date. Aggregates all rows from campaign_performance for that date. Inherits its data from the campaign_performance mart, not directly from staging models.
+
+      [Known Issues / Caveats] total_sessions is uniformly 2,200 every day (20 campaigns x 110) and total_conversions is uniformly 150 every day — both reflect the synthetic uniformity in the underlying session and conversion source data. Date 2025-12-20 is missing (gap inherited from source). budget_utilization, overall_conversion_rate, overall_roas, and overall_cpa use NULLIF for division safety — they will return NULL on days where the denominator is zero (no such days exist currently, but would on a zero-spend or zero-session day). avg_ctr and avg_cpc are simple averages across campaigns, not impression-weighted — they can be misleading when campaign sizes differ significantly.
     columns:
       - name: date
-        description: Date of the summary metrics
+        description: "[Business Purpose] Calendar date for the summary row. Sole grain column — each date appears exactly once. Use for time-series trending of portfolio-level KPIs."
         data_tests:
           - not_null
           - unique
 
       # Campaign metrics
       - name: active_campaigns
-        description: Count of distinct campaigns with activity on this date
+        description: "[Business Purpose] Count of distinct campaigns with data on this date. Tracks portfolio breadth — a sudden drop may indicate paused campaigns or source data issues. Currently constant at 20."
       - name: active_channels
-        description: Count of distinct marketing channels with activity on this date
+        description: "[Business Purpose] Count of distinct marketing channels active on this date. Measures platform diversification. Currently constant at 8."
 
       # Spend metrics
       - name: total_spend
-        description: Sum of spend across all campaigns on this date, in dollars
+        description: "[Business Purpose] Sum of spend across all campaigns for this date. Primary cost metric for portfolio-level budget monitoring. Range: ~$34k–$50k/day in current data."
       - name: total_budget
-        description: Sum of daily_budget across all campaigns on this date, in dollars
+        description: "[Business Purpose] Sum of daily_budget across all campaigns. Represents the theoretical maximum spend if all campaigns fully pace. Compare against total_spend via budget_utilization."
       - name: budget_utilization
-        description: >
-          Ratio of total spend to total budget (spend / budget) for this date.
-          [Known Issues / Caveats] Uses NULLIF, so returns NULL (not 0) when
-          total_budget = 0. Handle NULLs before aggregating or comparing with
-          campaign_performance metrics which return 0 for similar edge cases.
+        description: |
+          [Business Purpose] Ratio of total_spend to total_budget. Values near 1.0 mean campaigns are spending their full allocation. Low values suggest pacing issues or audience saturation.
+          [Known Issues / Caveats] Uses NULLIF(total_budget, 0) — returns NULL if total budget is zero on a given day.
 
       # Impression & Click metrics
       - name: total_impressions
-        description: Sum of impressions across all campaigns on this date
+        description: "[Business Purpose] Sum of impressions across all campaigns. Top-of-funnel volume indicator for the entire portfolio."
       - name: total_clicks
-        description: Sum of clicks across all campaigns on this date
+        description: "[Business Purpose] Sum of clicks across all campaigns. Aggregate demand signal from ad impressions."
       - name: avg_ctr
-        description: >
-          Average click-through rate across campaigns on this date.
-          [Known Issues / Caveats] This is an average of per-campaign CTRs,
-          not total_clicks / total_impressions. Small campaigns with high CTR
-          will skew this upward.
+        description: |
+          [Business Purpose] Simple average of CTR across campaigns. Directional indicator of overall ad creative health.
+          [Known Issues / Caveats] This is an unweighted average — campaigns with 1,000 impressions count equally to campaigns with 200,000. For impression-weighted CTR, compute total_clicks / total_impressions instead.
       - name: avg_cpc
-        description: >
-          Average cost per click across campaigns on this date.
-          [Known Issues / Caveats] This is an average of per-campaign CPCs,
-          not total_spend / total_clicks. Same skew caveat as avg_ctr.
+        description: |
+          [Business Purpose] Simple average of CPC across campaigns. Directional indicator of auction cost trends.
+          [Known Issues / Caveats] Unweighted average — same caveat as avg_ctr. For spend-weighted CPC, compute total_spend / total_clicks.
 
       # Session metrics
       - name: total_sessions
-        description: Sum of sessions across all campaigns on this date
+        description: |
+          [Business Purpose] Sum of sessions across all campaigns. Measures total site traffic driven by marketing on this date.
+          [Known Issues / Caveats] Currently reads 2,200 every day (20 campaigns x 110 uniform sessions) — reflects synthetic source data.
       - name: total_users
-        description: >
-          Sum of unique_users across all campaigns on this date.
-          [Known Issues / Caveats] This sums per-campaign unique user counts,
-          so users active across multiple campaigns are counted more than once.
-          This is not a true deduplicated user count.
+        description: |
+          [Business Purpose] Sum of unique_users across campaigns. Note: this is an additive sum, not a deduplicated user count — the same user visiting via two campaigns is counted twice.
+          [Known Issues / Caveats] Overstates true unique reach. For deduplicated counts, query stg_sessions directly.
       - name: avg_session_duration
-        description: Average session duration in seconds across campaigns on this date
+        description: "[Business Purpose] Average session duration in seconds across all campaigns. Proxy for overall content engagement quality driven by marketing traffic."
       - name: avg_pages_per_session
-        description: Average pages viewed per session across campaigns on this date
+        description: "[Business Purpose] Average pages per session across all campaigns. Measures depth of engagement for marketing-driven traffic."
 
       # Conversion metrics
       - name: total_conversions
-        description: Sum of conversions across all campaigns on this date
+        description: |
+          [Business Purpose] Sum of conversions across all campaigns. Bottom-of-funnel portfolio outcome metric.
+          [Known Issues / Caveats] Currently constant at 150/day — reflects synthetic uniformity in conversion source data.
       - name: total_revenue
-        description: Sum of revenue across all campaigns on this date, in dollars
+        description: "[Business Purpose] Sum of conversion revenue across all campaigns in dollars. Primary revenue metric for portfolio ROI. Range: ~$25.5k–$66.1k/day in current data."
       - name: avg_order_value
-        description: >
-          Average order value across all conversions on this date.
-          [Known Issues / Caveats] This is an average of per-campaign AOVs,
-          not total_revenue / total_conversions.
+        description: |
+          [Business Purpose] Simple average of per-campaign avg_order_value. Indicates the typical transaction size across the portfolio.
+          [Known Issues / Caveats] This averages campaign-level AOVs, including campaigns with zero conversions where AOV is COALESCE'd to 0 — pulling the average down. Filter campaign_performance to total_conversions > 0 before computing a meaningful portfolio AOV.
 
       # Calculated KPIs
       - name: overall_conversion_rate
-        description: >
-          Portfolio conversion rate calculated as total_conversions / total_sessions.
-          [Known Issues / Caveats] Uses NULLIF, so returns NULL (not 0) when
-          total_sessions = 0. Different null-handling from campaign_performance.conversion_rate
-          which returns 0.
+        description: |
+          [Business Purpose] Total conversions divided by total sessions across the portfolio. Measures aggregate funnel efficiency from visit to conversion.
+          [Known Issues / Caveats] Uses NULLIF(total_sessions, 0) — returns NULL if no sessions exist on a given day.
       - name: overall_roas
-        description: >
-          Portfolio return on ad spend calculated as total_revenue / total_spend.
-          [Known Issues / Caveats] Uses NULLIF, so returns NULL (not 0) when
-          total_spend = 0. Different null-handling from campaign_performance.roas
-          which returns 0.
+        description: |
+          [Business Purpose] Total revenue divided by total spend across the portfolio. Values above 1.0 indicate the marketing program as a whole is revenue-positive. Current range: 0.54–1.62.
+          [Known Issues / Caveats] Uses NULLIF(total_spend, 0) — returns NULL on zero-spend days.
       - name: overall_cpa
-        description: >
-          Portfolio cost per acquisition calculated as total_spend / total_conversions.
-          [Known Issues / Caveats] Uses NULLIF, so returns NULL (not 0) when
-          total_conversions = 0. Different null-handling from campaign_performance.cost_per_conversion
-          which returns 0.
+        description: |
+          [Business Purpose] Total spend divided by total conversions. Portfolio-level cost per acquisition. Compare against avg_order_value to assess whether acquisition cost is justified by transaction value.
+          [Known Issues / Caveats] Uses NULLIF(total_conversions, 0) — returns NULL on zero-conversion days.
